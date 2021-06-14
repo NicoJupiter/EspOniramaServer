@@ -18,12 +18,12 @@ void WifiEsp::initWifi(String apiKey, String userMail, String password) {
     
     WiFiManager wm;
     bool res;
-    //création d'un portail
+    //création d'un portail avec comme nom de réseau AutoConnectAP et en mdp password
     res = wm.autoConnect("AutoConnectAP","password");
 
     if(!res) {
         Serial.println("Failed to connect");
-        // ESP.restart();
+        ESP.restart();
     } 
     else {
         Serial.println("connected...yeey :)");

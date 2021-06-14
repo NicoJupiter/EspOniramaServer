@@ -2,14 +2,17 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 
+//le uuid du service
 #define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
-#define CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1214"
+//le uuid de la characteristic de la temperature
+#define TEMP_CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1214"
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 
 bool isDeviceConnected;
 
+//callabck de connection et de déconnexion pour le server ble
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       BLEDevice::startAdvertising();
@@ -39,9 +42,9 @@ void BleEsp::initBle() {
     // Create the BLE Service
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
-    // Create a BLE Characteristic
+    // Create a BLE Characteristic en mode read write notify et indicate
     pCharacteristic = pService->createCharacteristic(
-                            CHARACTERISTIC_UUID,
+                            TEMP_CHARACTERISTIC_UUID,
                             BLECharacteristic::PROPERTY_READ   |
                             BLECharacteristic::PROPERTY_WRITE  |
                             BLECharacteristic::PROPERTY_NOTIFY |

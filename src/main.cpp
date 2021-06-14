@@ -14,17 +14,17 @@
 
 #define FIREBASE_PROJECT_ID "gobelins-onirama"
 
-String documentPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temperatureData";
+//chemin où sera enregisrer les données
+String tempDocumentPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temperatureData";
 
 WifiEsp wifiEsp;
 BleEsp bleEsp;
 
-#define CONFIG_SW_COEXIST_ENABLE 1
-
+//va nous permettre de sauvegarder des données dans la mémoire de l'esp32
 Preferences preferences;
 
 int indexTemp = 0;
-
+int dataToGet = 5;
 int modeIdx;
 const int modeAddr = 0;
 
@@ -33,12 +33,12 @@ const int LED = 4;
 int BUTTONstate = 0;
 bool isDocumentCreated = false;
 
-  const char* userEmail;
-  const char* userPassword;
+const char* userEmail;
+const char* userPassword;
 
 std::vector<String> tempValues;
 
-
+//récupération des données contenu dans le fichier config.json
 bool loadConfig() {
   File configFile = SPIFFS.open("/config.json", "r");
   if (!configFile) {
@@ -78,10 +78,10 @@ bool loadConfig() {
 
 void setup()
 {
-Serial.begin(115200);
+  //instanciation serial avec un baud rate de 115200
+  Serial.begin(115200);
 
- Serial.println("Mounting FS...");
-
+  //-------RECUPERATION FICHIER CONFIG----------
    if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
@@ -91,22 +91,26 @@ Serial.begin(115200);
     Serial.println("Failed to load config");
   } else {
     Serial.println("Config loaded");
+    //on créer un objet json sous forme {datas : }
+    preferences.begin("datas", false);
+    Serial.write(preferences.getBool("wifiMode", false));
+      //-------GESTION MODE----------
+      //check if {datas : {wifiMode: true}}
+      if(preferences.getBool("wifiMode", false)) {
+        //WIFI MODE
+        Serial.println("WIFI MODE");
+        wifiEsp.initWifi(API_KEY, userEmail, userPassword);
+      } else {
+        //BLE MODE
+        preferences.clear();
+        Serial.println("BLE MODE");
+        bleEsp.initBle();
+      }
+
   }
 
   /*pinMode(BUTTON, INPUT);
   pinMode(LED, OUTPUT);*/
-
-  preferences.begin("datas", false);
-  if(preferences.getBool("wifiMode", false)) {
-    //WIFI MODE
-    Serial.println("WIFI MODE");
-    wifiEsp.initWifi(API_KEY, userEmail, userPassword);
-  } else {
-     //BLE MODE
-    preferences.clear();
-    Serial.println("BLE MODE");
-     bleEsp.initBle();
-  }
 
   /*
   ---------count mode-------------
@@ -143,7 +147,7 @@ Serial.begin(115200);
 }
 
 void WifiLoop() {
-   if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, documentPath)) {
+   if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, tempDocumentPath)) {
            Serial.println("Doc Deleted");
          } else {
            Serial.println("error doc deleted");
@@ -155,7 +159,7 @@ void WifiLoop() {
           FirebaseJson js;
           FirebaseJsonArray arr;
                   
-          for(int i = 0; i < 5; i++) {
+          for(int i = 0; i < dataToGet; i++) {
             String indexStr = "tempData" + String(i);
           
             // Print the counter to Serial Monitor
@@ -175,20 +179,18 @@ void WifiLoop() {
         Serial.println(content);
         Serial.print("Create a document... ");
 
-        wifiEsp.createDoc(FIREBASE_PROJECT_ID, documentPath, content);
+        wifiEsp.createDoc(FIREBASE_PROJECT_ID, tempDocumentPath, content);
         isDocumentCreated = true;
         preferences.clear();
         
 }
 
 void BleLoop() {
-  if(indexTemp < 5) {
+  if(indexTemp < dataToGet) {
     Serial.println("Add value to tempArray");
-    // Or remove the counter key only
+    
     String indexStr = "tempData" + String(indexTemp);
             
-    preferences.remove(indexStr.c_str());
-
     // Store the counter to the Preferences
     preferences.putString(indexStr.c_str(), bleEsp.getTempValue());
     } else {
