@@ -5,6 +5,9 @@
 #include "wifiEsp.h"
 #include "bleEsp.h"
 #include <Firebase_ESP_Client.h>
+#include "SPIFFS.h"
+
+#include <ArduinoJson.h>
 
 //define firebase configuration
 #define API_KEY "AIzaSyBqVaYFgabWZ7xAbNdvbZelYMomDBrYTvk"
@@ -33,12 +36,71 @@ const int LED = 4;
 int BUTTONstate = 0;
 bool isDocumentCreated = false;
 
+  const char* userEmail;
+  const char* userPassword;
+
 std::vector<String> tempValues;
+
+
+bool loadConfig() {
+  File configFile = SPIFFS.open("/config.json", "r");
+  if (!configFile) {
+    Serial.println("Failed to open config file");
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    Serial.println("Config file size is too large");
+    return false;
+  }
+
+  // Allocate a buffer to store contents of the file.
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  // We don't use String here because ArduinoJson library requires the input
+  // buffer to be mutable. If you don't use ArduinoJson, you may as well
+  // use configFile.readString instead.
+  configFile.readBytes(buf.get(), size);
+
+  StaticJsonDocument<200> doc;
+  auto error = deserializeJson(doc, buf.get());
+  if (error) {
+    Serial.println("Failed to parse config file");
+    return false;
+  }
+
+  userEmail = doc["userEmail"];
+  userPassword = doc["userPassword"];
+  
+  Serial.print("Loaded serverName: ");
+  Serial.println(userEmail);
+  Serial.print("Loaded accessToken: ");
+  Serial.println(userPassword);
+  // Real world application would store these values in some variables for
+  // later use.
+
+  return true;
+}
 
 void setup()
 {
-  Serial.begin(115200);
-  pinMode(BUTTON, INPUT);
+Serial.begin(115200);
+
+ Serial.println("Mounting FS...");
+
+   if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+
+  if (!loadConfig()) {
+    Serial.println("Failed to load config");
+  } else {
+    Serial.println("Config loaded");
+  }
+
+ /* pinMode(BUTTON, INPUT);
   pinMode(LED, OUTPUT);
 
   preferences.begin("datas", false);
@@ -51,7 +113,7 @@ void setup()
     preferences.clear();
     Serial.println("BLE MODE");
      bleEsp.initBle();
-  }
+  }*/
 
   /*
   ---------count mode-------------
