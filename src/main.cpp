@@ -14,9 +14,6 @@
 
 #define FIREBASE_PROJECT_ID "gobelins-onirama"
 
-#define USER_EMAIL ""
-#define USER_PASSWORD ""
-
 String documentPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temperatureData";
 
 WifiEsp wifiEsp;
@@ -72,11 +69,7 @@ bool loadConfig() {
 
   userEmail = doc["userEmail"];
   userPassword = doc["userPassword"];
-  
-  Serial.print("Loaded serverName: ");
-  Serial.println(userEmail);
-  Serial.print("Loaded accessToken: ");
-  Serial.println(userPassword);
+
   // Real world application would store these values in some variables for
   // later use.
 
@@ -100,20 +93,20 @@ Serial.begin(115200);
     Serial.println("Config loaded");
   }
 
- /* pinMode(BUTTON, INPUT);
-  pinMode(LED, OUTPUT);
+  /*pinMode(BUTTON, INPUT);
+  pinMode(LED, OUTPUT);*/
 
   preferences.begin("datas", false);
   if(preferences.getBool("wifiMode", false)) {
     //WIFI MODE
     Serial.println("WIFI MODE");
-    wifiEsp.initWifi(API_KEY, USER_EMAIL, USER_PASSWORD);
+    wifiEsp.initWifi(API_KEY, userEmail, userPassword);
   } else {
      //BLE MODE
     preferences.clear();
     Serial.println("BLE MODE");
      bleEsp.initBle();
-  }*/
+  }
 
   /*
   ---------count mode-------------
