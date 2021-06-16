@@ -5,6 +5,8 @@
 #include <Firebase_ESP_Client.h>
 #include "SPIFFS.h"
 
+#include <Preferences.h>
+
 #include <ArduinoJson.h>
 
 //define firebase configuration
@@ -18,6 +20,8 @@ String tempDocumentPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temperatureD
 WifiEsp wifiEsp;
 BleEsp bleEsp;
 
+Preferences preferences;
+
 int BUTTON;
 int LED;
 int ledflag;
@@ -28,6 +32,7 @@ bool isUploading;
 const char* userEmail;
 const char* userPassword;
 
+bool isBtnPressed;
 
 std::vector<String> tempValues;
 
@@ -89,8 +94,14 @@ void setup()
   if (!loadConfig()) {
     Serial.println("Failed to load config");
   } else {
-    Serial.println("Config loaded");
-    //on créer un objet json sous forme {datas : }
+  
+    preferences.begin("datas", false);
+
+    Serial.println(preferences.getInt("dataCount", 0));
+
+    if (preferences.getBool("isBtnPressed", false)) {         
+      digitalWrite(LED,HIGH);
+    }  
 
       bleEsp.initBle();
       while(!bleEsp.getIsDeviceConnected()) {
@@ -117,10 +128,25 @@ void saveDataToFirebase() {
 
           FirebaseJson js;
           FirebaseJsonArray arr;
-          for(int i = 0; i < tempValues.size(); i++) {
+          /*for(int i = 0; i < tempValues.size(); i++) {
             arr.set("[" + String(i) + "]" + "/stringValue", tempValues[i]);
-          } 
-                  
+          } */
+        int dataToGet = preferences.getInt("dataCount", 0);
+
+        for(int i = 0; i <= dataToGet; i++) {
+            String indexStr = "tempData" + String(i);
+          
+            // Print the counter to Serial Monitor
+            String tempStr = preferences.getString(indexStr.c_str(), "");
+            Serial.println(tempStr);
+            if(tempStr != "") {
+              arr.set("[" + String(i) + "]" + "/stringValue", tempStr);
+            }
+          
+        }
+        int dataCount =  dataToGet + 1;
+        preferences.putInt("dataCount", dataCount);    
+
         js.set("fields/temperature/arrayValue/values", arr);
 
         js.toString(content);
@@ -131,59 +157,52 @@ void saveDataToFirebase() {
         wifiEsp.createDoc(FIREBASE_PROJECT_ID, tempDocumentPath, content);
 
 }
-/*
-void BleLoop() {
-  if(indexTemp < dataToGet) {
-    Serial.println("Add value to tempArray");
-    
-    String indexStr = "tempData" + String(indexTemp);
-            
-    // Store the counter to the Preferences
-    preferences.putString(indexStr.c_str(), bleEsp.getTempValue());
-    } else {
-      Serial.println("Data is ready");
-      preferences.putBool("wifiMode", true);
-      ESP.restart();
-    }
-  indexTemp++;
-}*/
 
 void loop()
 {
   if (digitalRead(BUTTON) == HIGH) {
-    if (ledflag==0) {           
-      ledflag=1;                  
-      digitalWrite(LED,HIGH);   
+    if (!preferences.getBool("isBtnPressed", false)) {           
+      preferences.putBool("isBtnPressed", true);               
+      digitalWrite(LED,HIGH);  
+      preferences.putBool("isBtnPressed", true); 
     }                          
     else {                    
-      ledflag=0;               
+      preferences.putBool("isBtnPressed", false);                      
       digitalWrite(LED,LOW);
+      preferences.clear();
+      ESP.restart();
     } 
   }   
 
-  if(ledflag == 1) {
-    if(bleEsp.getIsDeviceConnected()) {
-        bleEsp.notifyClient();
-        if(bleEsp.getTempValue() != "") {
-           tempValues.push_back(bleEsp.getTempValue()); 
-          bleEsp.deinitBle();
+  if(preferences.getBool("isBtnPressed", false)) {
+    Serial.println(bleEsp.getIsDeviceConnected());
+    while (!bleEsp.getIsDeviceConnected())
+    {
+      Serial.print(".");
+      delay(200);
+    }
+    bleEsp.notifyClient();
+    if(bleEsp.getTempValue() != "") {
+      int indexCount = preferences.getInt("dataCount", 0);
+      String indexStr = "tempData" + String(indexCount);
+      Serial.println(indexCount);
+      preferences.putString(indexStr.c_str(), bleEsp.getTempValue());
+      //tempValues.push_back(bleEsp.getTempValue()); 
+      bleEsp.deinitBle();
           
-          Serial.println(esp_get_free_heap_size());
-          if(!isFirebaseInit) {
-            wifiEsp.initFirebase(API_KEY, userEmail, userPassword);
-            isFirebaseInit = true;
-          }
-          while(!wifiEsp.getIsFirebaseReady()) {
-            Serial.print(".");
-            delay(200);
-          }
-          
-           saveDataToFirebase();
-           bleEsp.initBle();
-           
-        Serial.println(esp_get_free_heap_size());
-        }
+      Serial.println(esp_get_free_heap_size());
+      if(!isFirebaseInit) {
+        wifiEsp.initFirebase(API_KEY, userEmail, userPassword);
+        isFirebaseInit = true;
       }
+      while(!wifiEsp.getIsFirebaseReady()) {
+        Serial.print(".");
+        delay(200);
+      }
+          
+      saveDataToFirebase();
+      ESP.restart();
+    }
   }      
 
   delay(2000);
