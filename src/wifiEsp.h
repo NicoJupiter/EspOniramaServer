@@ -9,7 +9,7 @@ class WifiEsp {
         String documentPath;
     public : 
         WifiEsp();
-        void initWifi(String apiKey, String userMail, String password);
+        void initWifi();
         void initFirebase(String apiKey, String userMail, String password);
         bool deleteDoc(String firebaseId, String documentPath);
         bool createDoc(String firebaseId, String documentPath, String content);

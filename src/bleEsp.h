@@ -8,9 +8,11 @@ class BleEsp {
     public : 
         BleEsp();
         void initBle();
+        void deinitBle();
         String getTempValue();
         void setIsDeviceConnected(bool value);
         bool getIsDeviceConnected();
+        void notifyClient();
 };
 
 #endif

@@ -6,9 +6,10 @@
 #define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
 //le uuid de la characteristic de la temperature
 #define TEMP_CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1214"
-
+#define NOTIFY_CHARACTERISTIC_UUID "19B10003-E8F2-537E-4F6C-D104768A1214"
 BLEServer* pServer = NULL;
-BLECharacteristic* pCharacteristic = NULL;
+BLECharacteristic* pTempCharacteristic = NULL;
+BLECharacteristic* pNotifyCharacteristic = NULL;
 
 bool isDeviceConnected;
 
@@ -43,14 +44,19 @@ void BleEsp::initBle() {
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
     // Create a BLE Characteristic en mode read write notify et indicate
-    pCharacteristic = pService->createCharacteristic(
+    pTempCharacteristic = pService->createCharacteristic(
                             TEMP_CHARACTERISTIC_UUID,
+                            BLECharacteristic::PROPERTY_READ   |
+                            BLECharacteristic::PROPERTY_WRITE  
+                            );
+
+    pNotifyCharacteristic = pService->createCharacteristic(
+                            NOTIFY_CHARACTERISTIC_UUID,
                             BLECharacteristic::PROPERTY_READ   |
                             BLECharacteristic::PROPERTY_WRITE  |
                             BLECharacteristic::PROPERTY_NOTIFY |
                             BLECharacteristic::PROPERTY_INDICATE
                             );
-
 
     // Start the service
     pService->start();
@@ -64,15 +70,26 @@ void BleEsp::initBle() {
     Serial.println("Waiting a client connection to notify...");
 }
 
+void BleEsp::deinitBle() {
+    BLEDevice::deinit();
+}
+
 String BleEsp::getTempValue() {
     if(isDeviceConnected) {
-        Serial.println("return temp value");
-        return pCharacteristic->getValue().c_str();
+        Serial.println(pTempCharacteristic->getValue().c_str());
+        return pTempCharacteristic->getValue().c_str();
     } else {
            Serial.println("temp value device not connected");
         return "";
     }
    
+}
+
+void BleEsp::notifyClient() {
+    Serial.println("notify");
+    uint8_t value = 0;
+    pNotifyCharacteristic->setValue(&value, 1); 
+    pNotifyCharacteristic->notify(); 
 }
 
 void BleEsp::setIsDeviceConnected(bool value) {

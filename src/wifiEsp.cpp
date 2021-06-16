@@ -14,7 +14,7 @@ WifiEsp::WifiEsp() {
 
 }
 
-void WifiEsp::initWifi(String apiKey, String userMail, String password) {
+void WifiEsp::initWifi() {
     
     WiFiManager wm;
     bool res;
@@ -27,24 +27,30 @@ void WifiEsp::initWifi(String apiKey, String userMail, String password) {
     } 
     else {
         Serial.println("connected...yeey :)");
-         initFirebase(apiKey, userMail, password);
     }
 }
-
+/**
+  * @brief  Init firebase
+  */
 void WifiEsp::initFirebase(String apiKey, String userMail, String password) {
     
     config.api_key = apiKey.c_str();
 
-    auth.user.email = userMail.c_str();
-    auth.user.password = password.c_str();
+    auth.user.email =  "";
+    auth.user.password = "";
 
     config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
 
     Firebase.begin(&config, &auth);
-            
+    
     Firebase.reconnectWiFi(true);
 }
 
+/**
+  * @brief  delete doc
+  * note : ne marche que lorsque firebase est ready
+  * @return bool
+  */
 bool WifiEsp::deleteDoc(String firebaseId, String documentPath) {
     if (Firebase.Firestore.deleteDocument(&fbdo, firebaseId.c_str(), "" , documentPath.c_str())) {
         Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
@@ -55,7 +61,11 @@ bool WifiEsp::deleteDoc(String firebaseId, String documentPath) {
     }
   
 }
-
+/**
+  * @brief  create doc
+  * note : ne marche que lorsque firebase est ready
+  * @return bool
+  */
 bool WifiEsp::createDoc(String firebaseId, String documentPath, String content) {
     if (Firebase.Firestore.createDocument(&fbdo, firebaseId.c_str(), "" , documentPath.c_str(), content.c_str())) {
         Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
