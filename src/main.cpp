@@ -64,6 +64,7 @@ bool loadConfig() {
 
   userEmail = doc["userEmail"];
   userPassword = doc["userPassword"];
+  wifiEsp.setUserAndPassword(userEmail, userPassword);
 
   // Real world application would store these values in some variables for
   // later use.
@@ -94,7 +95,7 @@ void setup()
   if (!loadConfig()) {
     Serial.println("Failed to load config");
   } else {
-  
+
     preferences.begin("datas", false);
 
     Serial.println(preferences.getInt("dataCount", 0));
@@ -174,8 +175,11 @@ void loop()
     } 
   }   
 
+  delay(2000);
+
   if(preferences.getBool("isBtnPressed", false)) {
     Serial.println(bleEsp.getIsDeviceConnected());
+
     while (!bleEsp.getIsDeviceConnected())
     {
       Serial.print(".");
@@ -192,7 +196,7 @@ void loop()
           
       Serial.println(esp_get_free_heap_size());
       if(!isFirebaseInit) {
-        wifiEsp.initFirebase(API_KEY, userEmail, userPassword);
+        wifiEsp.initFirebase(API_KEY);
         isFirebaseInit = true;
       }
       while(!wifiEsp.getIsFirebaseReady()) {

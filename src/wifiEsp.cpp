@@ -32,18 +32,23 @@ void WifiEsp::initWifi() {
 /**
   * @brief  Init firebase
   */
-void WifiEsp::initFirebase(String apiKey, String userMail, String password) {
+void WifiEsp::initFirebase(String apiKey) {
     
     config.api_key = apiKey.c_str();
 
-    auth.user.email =  "";
-    auth.user.password = "";
+    auth.user.email =  _userEmail.c_str();
+    auth.user.password = _userPassword.c_str();
 
     config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
 
     Firebase.begin(&config, &auth);
     
     Firebase.reconnectWiFi(true);
+}
+
+void WifiEsp::setUserAndPassword(String userMail, String password) {
+    _userEmail = userMail;
+    _userPassword = password;
 }
 
 /**

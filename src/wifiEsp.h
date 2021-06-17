@@ -5,15 +5,16 @@
 
 class WifiEsp {
     private:
-        String firebaseProjectId;
-        String documentPath;
+        String _userEmail;
+        String _userPassword;
     public : 
         WifiEsp();
         void initWifi();
-        void initFirebase(String apiKey, String userMail, String password);
+        void initFirebase(String apiKey);
         bool deleteDoc(String firebaseId, String documentPath);
         bool createDoc(String firebaseId, String documentPath, String content);
         bool getIsFirebaseReady();
+        void setUserAndPassword(String userMail, String password);
 };
 
 #endif
