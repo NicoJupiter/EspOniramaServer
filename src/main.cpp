@@ -76,6 +76,53 @@ bool loadConfig() {
   return true;
 }
 
+void saveEndStatusToFirebase() {
+
+   bleEsp.deinitBle();
+   if(!isFirebaseInit) {
+      wifiEsp.initFirebase(API_KEY);
+      isFirebaseInit = true;
+    }
+    while(!wifiEsp.getIsFirebaseReady()) {
+      Serial.print(".");
+      delay(200);
+  }
+
+    if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, endStatusPath)) {
+      Serial.println("Doc Deleted");
+    } else {
+      Serial.println("error doc deleted");
+    }
+    String content;
+    FirebaseJson js;
+
+    js.set("fields/status/stringValue", "test");
+
+    js.toString(content);
+
+    Serial.println(content);
+    Serial.print("Create a document... ");
+
+    wifiEsp.createDoc(FIREBASE_PROJECT_ID, endStatusPath, content);
+}
+
+void checkButtonState() {
+if (digitalRead(BUTTON) == HIGH) {
+    if (!preferences.getBool("isBtnPressed", false)) {           
+      preferences.putBool("isBtnPressed", true);               
+      digitalWrite(LED,HIGH);  
+      preferences.putBool("isBtnPressed", true); 
+    }                          
+    else {                    
+      preferences.putBool("isBtnPressed", false);                      
+      digitalWrite(LED,LOW);
+      preferences.clear();
+      saveEndStatusToFirebase();
+      isEnded = true;
+    } 
+  }  
+}
+
 void setup()
 {
   //instanciation serial avec un baud rate de 115200
@@ -105,47 +152,17 @@ void setup()
     if (preferences.getBool("isBtnPressed", false)) {         
       digitalWrite(LED,HIGH);
     }  
+    wifiEsp.initWifi();
 
       bleEsp.initBle();
       while(!bleEsp.getIsDeviceConnected()) {
+        checkButtonState();
         Serial.print(".");
         delay(500);
       }
-    Serial.println(esp_get_free_heap_size());
-    wifiEsp.initWifi();
-    Serial.println(esp_get_free_heap_size());
+  
   }
  
-}
-
-void saveEndStatusToFirebase() {
-
-   bleEsp.deinitBle();
-   if(!isFirebaseInit) {
-      wifiEsp.initFirebase(API_KEY);
-      isFirebaseInit = true;
-    }
-    while(!wifiEsp.getIsFirebaseReady()) {
-      Serial.print(".");
-      delay(200);
-  }
-
-    if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, endStatusPath)) {
-      Serial.println("Doc Deleted");
-    } else {
-      Serial.println("error doc deleted");
-    }
-    String content;
-    FirebaseJson js;
-
-    js.set("fields/status/stringValue", "test");
-
-    js.toString(content);
-
-    Serial.println(content);
-    Serial.print("Create a document... ");
-
-    wifiEsp.createDoc(FIREBASE_PROJECT_ID, endStatusPath, content);
 }
 
 void saveDataToFirebase() {
@@ -197,27 +214,10 @@ void saveDataToFirebase() {
 
 }
 
-void checkButtonState() {
-if (digitalRead(BUTTON) == HIGH) {
-    if (!preferences.getBool("isBtnPressed", false)) {           
-      preferences.putBool("isBtnPressed", true);               
-      digitalWrite(LED,HIGH);  
-      preferences.putBool("isBtnPressed", true); 
-    }                          
-    else {                    
-      preferences.putBool("isBtnPressed", false);                      
-      digitalWrite(LED,LOW);
-      preferences.clear();
-      saveEndStatusToFirebase();
-      isEnded = true;
-    } 
-  }  
-}
-
 void loop()
 {
   checkButtonState();
-  delay(1000);
+  delay(500);
   if(!isEnded) {
     if(preferences.getBool("isBtnPressed", false)) {
         Serial.println(bleEsp.getIsDeviceConnected());
