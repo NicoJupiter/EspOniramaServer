@@ -19,6 +19,7 @@
 //chemin où sera enregisrer les données
 String tempDocumentPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temp";
 String endStatusPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/listener";
+String datePath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temp";
 WifiEsp wifiEsp;
 BleEsp bleEsp;
 TempSensor tempSensor;
@@ -76,7 +77,7 @@ bool loadConfig() {
   return true;
 }
 
-void saveEndStatusToFirebase() {
+void saveStatusToFirebase(String value) {
 
    bleEsp.deinitBle();
    if(!isFirebaseInit) {
@@ -96,7 +97,7 @@ void saveEndStatusToFirebase() {
     String content;
     FirebaseJson js;
 
-    js.set("fields/status/stringValue", "test");
+    js.set("fields/status/stringValue", value);
 
     js.toString(content);
 
@@ -106,18 +107,46 @@ void saveEndStatusToFirebase() {
     wifiEsp.createDoc(FIREBASE_PROJECT_ID, endStatusPath, content);
 }
 
+void saveStartDate() {
+    String mask = "start";
+    String str = wifiEsp.getDoc(FIREBASE_PROJECT_ID, datePath, mask);
+
+    int str_len = str.length() + 1; 
+
+    char char_array[str_len];
+
+    str.toCharArray(char_array, str_len);
+    StaticJsonDocument<200> doc;
+    auto error = deserializeJson(doc, char_array);
+    if (error) {
+      Serial.println("Failed to parse config file");
+    } else {
+      const char* dateStart = doc["fields"]["start"]["stringValue"];
+      preferences.putString("dateStart", dateStart);
+    }
+
+}
+
 void checkButtonState() {
 if (digitalRead(BUTTON) == HIGH) {
-    if (!preferences.getBool("isBtnPressed", false)) {           
-      preferences.putBool("isBtnPressed", true);               
-      digitalWrite(LED,HIGH);  
-      preferences.putBool("isBtnPressed", true); 
+    if (!preferences.getBool("isBtnPressed", false)) { 
+      digitalWrite(LED,HIGH);    
+      saveStatusToFirebase("pending"); 
+      delay(1000);
+      saveStartDate();       
+      preferences.putBool("isBtnPressed", true);  
+
+     bleEsp.initBle();
+      while(!bleEsp.getIsDeviceConnected()) {
+        Serial.print(".");
+        delay(500);
+      }
     }                          
     else {                    
       preferences.putBool("isBtnPressed", false);                      
       digitalWrite(LED,LOW);
       preferences.clear();
-      saveEndStatusToFirebase();
+      saveStatusToFirebase("done");
       isEnded = true;
     } 
   }  
@@ -148,19 +177,19 @@ void setup()
     preferences.begin("datas", false);
 
     Serial.println(preferences.getInt("dataCount", 0));
-
+    
+    wifiEsp.initWifi(); 
+  
     if (preferences.getBool("isBtnPressed", false)) {         
       digitalWrite(LED,HIGH);
-    }  
-    wifiEsp.initWifi();
-
       bleEsp.initBle();
       while(!bleEsp.getIsDeviceConnected()) {
         checkButtonState();
         Serial.print(".");
         delay(500);
       }
-  
+    }
+    
   }
  
 }
@@ -204,7 +233,9 @@ void saveDataToFirebase() {
         preferences.putInt("dataCount", dataCount);    
 
         js.set("fields/temperature/arrayValue/values", arr);
-        js.set("fields/sensor/arrayValue/values", arrSensor);
+        js.set("fields/cardiac/arrayValue/values", arrSensor);
+        js.set("fields/start/stringValue",  preferences.getString("dateStart", ""));
+  
         js.toString(content);
 
         Serial.println(content);

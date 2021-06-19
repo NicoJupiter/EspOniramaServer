@@ -82,6 +82,13 @@ bool WifiEsp::createDoc(String firebaseId, String documentPath, String content) 
   
 }
 
+String WifiEsp::getDoc(String firebaseId, String documentPath, String mask) {
+    if (Firebase.Firestore.getDocument(&fbdo, firebaseId.c_str(), "", documentPath.c_str(), mask.c_str()))
+       return fbdo.payload().c_str();
+    else
+       return "nothing found";
+}
+
 bool WifiEsp::getIsFirebaseReady() {
     return Firebase.ready();
 }
