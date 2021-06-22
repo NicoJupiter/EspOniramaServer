@@ -11,6 +11,9 @@ class WifiEsp {
         WifiEsp();
         void initWifi();
         void initFirebase(String apiKey);
+        String getSSID();
+        String getPassword();
+        int getWifiStatus();
         bool deleteDoc(String firebaseId, String documentPath);
         bool createDoc(String firebaseId, String documentPath, String content);
         String getDoc(String firebaseId, String documentPath, String mask);

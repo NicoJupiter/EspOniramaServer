@@ -101,15 +101,16 @@ void saveStatusToFirebase(String value) {
 
     js.toString(content);
 
-    Serial.println(content);
-    Serial.print("Create a document... ");
+    Serial.print("Create status document... ");
 
     wifiEsp.createDoc(FIREBASE_PROJECT_ID, endStatusPath, content);
 }
 
-void saveStartDate() {
+String getStartDate() {
     String mask = "start";
     String str = wifiEsp.getDoc(FIREBASE_PROJECT_ID, datePath, mask);
+
+    Serial.println(str);
 
     int str_len = str.length() + 1; 
 
@@ -120,9 +121,9 @@ void saveStartDate() {
     auto error = deserializeJson(doc, char_array);
     if (error) {
       Serial.println("Failed to parse config file");
+      return "";
     } else {
-      const char* dateStart = doc["fields"]["start"]["stringValue"];
-      preferences.putString("dateStart", dateStart);
+      return doc["fields"]["start"]["stringValue"];
     }
 
 }
@@ -132,8 +133,7 @@ if (digitalRead(BUTTON) == HIGH) {
     if (!preferences.getBool("isBtnPressed", false)) { 
       digitalWrite(LED,HIGH);    
       saveStatusToFirebase("pending"); 
-      delay(1000);
-      saveStartDate();       
+      
       preferences.putBool("isBtnPressed", true);  
 
      bleEsp.initBle();
@@ -177,11 +177,21 @@ void setup()
     preferences.begin("datas", false);
 
     Serial.println(preferences.getInt("dataCount", 0));
-    
+    delay(2000);
+
+    if (preferences.getBool("isBtnPressed", false)) {
+      digitalWrite(LED,HIGH);
+    }
+
     wifiEsp.initWifi(); 
+    /*Serial.println("connecting to wifi.");
+    while(wifiEsp.getWifiStatus() != 3) {
+      Serial.println(wifiEsp.getWifiStatus());
+      Serial.print('.');
+      delay(500);
+    }*/
   
     if (preferences.getBool("isBtnPressed", false)) {         
-      digitalWrite(LED,HIGH);
       bleEsp.initBle();
       while(!bleEsp.getIsDeviceConnected()) {
         checkButtonState();
@@ -195,6 +205,10 @@ void setup()
 }
 
 void saveDataToFirebase() {
+
+  String startDate = getStartDate();
+  Serial.println(startDate);
+
    if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, tempDocumentPath)) {
            Serial.println("Doc Deleted");
          } else {
@@ -202,8 +216,6 @@ void saveDataToFirebase() {
          }
                   
           String content;
-          //tempValues.push_back(tempValue);
-
         FirebaseJson js;
         FirebaseJsonArray arr;
         FirebaseJsonArray arrSensor;
@@ -234,7 +246,7 @@ void saveDataToFirebase() {
 
         js.set("fields/temperature/arrayValue/values", arr);
         js.set("fields/cardiac/arrayValue/values", arrSensor);
-        js.set("fields/start/stringValue",  preferences.getString("dateStart", ""));
+        js.set("fields/start/stringValue", startDate);
   
         js.toString(content);
 
@@ -248,7 +260,7 @@ void saveDataToFirebase() {
 void loop()
 {
   checkButtonState();
-  delay(500);
+  delay(1000);
   if(!isEnded) {
     if(preferences.getBool("isBtnPressed", false)) {
         Serial.println(bleEsp.getIsDeviceConnected());

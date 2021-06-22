@@ -10,13 +10,25 @@ FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
+#define WIFI_SSID "Oui bonsoir"
+#define WIFI_PASSWORD "OuiOuiNon24"
+
 WifiEsp::WifiEsp() {
 
 }
 
 void WifiEsp::initWifi() {
-    
-    WiFiManager wm;
+
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.print("Connecting to Wi-Fi");
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.print(".");
+        delay(300);
+    }
+    Serial.println("connected...yeey :)");
+   /* WiFiManager wm;
+
     bool res;
     //création d'un portail avec comme nom de réseau AutoConnectAP et en mdp password
     res = wm.autoConnect("AutoConnectAP","password");
@@ -27,8 +39,21 @@ void WifiEsp::initWifi() {
     } 
     else {
         Serial.println("connected...yeey :)");
-    }
+    }*/
 }
+
+String WifiEsp::getSSID() {
+    return WiFi.SSID();
+}
+
+String WifiEsp::getPassword() {
+    return WiFi.psk();
+}
+
+int WifiEsp::getWifiStatus() {
+    return WiFi.status();
+}
+
 /**
   * @brief  Init firebase
   */
@@ -83,10 +108,11 @@ bool WifiEsp::createDoc(String firebaseId, String documentPath, String content) 
 }
 
 String WifiEsp::getDoc(String firebaseId, String documentPath, String mask) {
-    if (Firebase.Firestore.getDocument(&fbdo, firebaseId.c_str(), "", documentPath.c_str(), mask.c_str()))
-       return fbdo.payload().c_str();
-    else
+    if (Firebase.Firestore.getDocument(&fbdo, firebaseId.c_str(), "", documentPath.c_str(), mask.c_str())) {
+    return fbdo.payload().c_str();
+    } else {
        return "nothing found";
+    }
 }
 
 bool WifiEsp::getIsFirebaseReady() {
