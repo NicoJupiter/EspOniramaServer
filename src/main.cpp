@@ -146,7 +146,7 @@ if (digitalRead(BUTTON) == HIGH) {
       preferences.putBool("isBtnPressed", false);                      
       digitalWrite(LED,LOW);
       preferences.clear();
-      saveStatusToFirebase("done");
+      //saveStatusToFirebase("done");
       isEnded = true;
     } 
   }  
@@ -182,23 +182,31 @@ void setup()
     if (preferences.getBool("isBtnPressed", false)) {
       digitalWrite(LED,HIGH);
     }
-
+    bleEsp.initBle();
+       while (!bleEsp.getIsDeviceConnected())
+        {
+          Serial.print(".");
+          delay(200);
+        }
     wifiEsp.initWifi(); 
+
+    wifiEsp.initFirebase(API_KEY);
     /*Serial.println("connecting to wifi.");
     while(wifiEsp.getWifiStatus() != 3) {
       Serial.println(wifiEsp.getWifiStatus());
       Serial.print('.');
       delay(500);
     }*/
+
   
-    if (preferences.getBool("isBtnPressed", false)) {         
+    /*if (preferences.getBool("isBtnPressed", false)) {         
       bleEsp.initBle();
       while(!bleEsp.getIsDeviceConnected()) {
         checkButtonState();
         Serial.print(".");
         delay(500);
       }
-    }
+    }*/
     
   }
  
@@ -259,7 +267,7 @@ void saveDataToFirebase() {
 
 void loop()
 {
-  checkButtonState();
+  /*checkButtonState();
   delay(1000);
   if(!isEnded) {
     if(preferences.getBool("isBtnPressed", false)) {
@@ -295,5 +303,5 @@ void loop()
           ESP.restart();
         }
       } 
-  }
+  }*/
 }
