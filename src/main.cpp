@@ -187,15 +187,6 @@ void setup()
       Serial.print(".");
       delay(200);
     }
-  
-    /*if (preferences.getBool("isBtnPressed", false)) {         
-      bleEsp.initBle();
-      while(!bleEsp.getIsDeviceConnected()) {
-        checkButtonState();
-        Serial.print(".");
-        delay(500);
-      }
-    }*/
     
   }
  
@@ -246,7 +237,7 @@ void saveDataToFirebase() {
   
         js.toString(content);
 
-        Serial.println(content);
+        //Serial.println(content);
         Serial.print("Create a document... ");
 
         wifiEsp.createDoc(FIREBASE_PROJECT_ID, tempDocumentPath, content);
@@ -255,8 +246,8 @@ void saveDataToFirebase() {
 
 void loop()
 {
-  Serial.println("lloopppp");
   checkButtonState();
+  delay(2000);
   if(!isEnded) {
     if(preferences.getBool("isBtnPressed", false)) {
 
@@ -267,6 +258,8 @@ void loop()
           delay(200);
         }
         nimBleEsp.notifyClient();
+          checkButtonState();
+  delay(2000);
         if(nimBleEsp.getCardiacValue() != "") {
           int indexCount = preferences.getInt("dataCount", 0);
           String tempIndex = "tempData" + String(indexCount);
