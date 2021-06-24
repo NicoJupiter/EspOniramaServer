@@ -2,6 +2,7 @@
 
 #include "wifiEsp.h"
 #include "bleEsp.h"
+#include "nimBleEsp.h"
 #include "tempSensor.h"
 
 #include <Firebase_ESP_Client.h>
@@ -21,7 +22,8 @@ String tempDocumentPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temp";
 String endStatusPath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/listener";
 String datePath = "user/8FawTyOj5LMJ7fy4sUJiWOAW8cG3/device/temp";
 WifiEsp wifiEsp;
-BleEsp bleEsp;
+//BleEsp bleEsp;
+NimBleEsp nimBleEsp;
 TempSensor tempSensor;
 
 Preferences preferences;
@@ -79,16 +81,6 @@ bool loadConfig() {
 
 void saveStatusToFirebase(String value) {
 
-   bleEsp.deinitBle();
-   if(!isFirebaseInit) {
-      wifiEsp.initFirebase(API_KEY);
-      isFirebaseInit = true;
-    }
-    while(!wifiEsp.getIsFirebaseReady()) {
-      Serial.print(".");
-      delay(200);
-  }
-
     if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, endStatusPath)) {
       Serial.println("Doc Deleted");
     } else {
@@ -136,17 +128,12 @@ if (digitalRead(BUTTON) == HIGH) {
       
       preferences.putBool("isBtnPressed", true);  
 
-     bleEsp.initBle();
-      while(!bleEsp.getIsDeviceConnected()) {
-        Serial.print(".");
-        delay(500);
-      }
     }                          
     else {                    
       preferences.putBool("isBtnPressed", false);                      
       digitalWrite(LED,LOW);
       preferences.clear();
-      //saveStatusToFirebase("done");
+      saveStatusToFirebase("done");
       isEnded = true;
     } 
   }  
@@ -177,27 +164,29 @@ void setup()
     preferences.begin("datas", false);
 
     Serial.println(preferences.getInt("dataCount", 0));
-    delay(2000);
 
     if (preferences.getBool("isBtnPressed", false)) {
       digitalWrite(LED,HIGH);
     }
-    bleEsp.initBle();
-       while (!bleEsp.getIsDeviceConnected())
-        {
-          Serial.print(".");
-          delay(200);
-        }
+
     wifiEsp.initWifi(); 
 
     wifiEsp.initFirebase(API_KEY);
-    /*Serial.println("connecting to wifi.");
-    while(wifiEsp.getWifiStatus() != 3) {
-      Serial.println(wifiEsp.getWifiStatus());
-      Serial.print('.');
-      delay(500);
-    }*/
 
+     while (!wifiEsp.getIsFirebaseReady())
+    {
+      Serial.print(".");
+      delay(200);
+    }
+
+    Serial.println(esp_get_free_heap_size());
+   
+    nimBleEsp.initBle();
+    while (!nimBleEsp.isConnectedClient())
+    {
+      Serial.print(".");
+      delay(200);
+    }
   
     /*if (preferences.getBool("isBtnPressed", false)) {         
       bleEsp.initBle();
@@ -215,7 +204,6 @@ void setup()
 void saveDataToFirebase() {
 
   String startDate = getStartDate();
-  Serial.println(startDate);
 
    if(wifiEsp.deleteDoc(FIREBASE_PROJECT_ID, tempDocumentPath)) {
            Serial.println("Doc Deleted");
@@ -267,6 +255,35 @@ void saveDataToFirebase() {
 
 void loop()
 {
+  Serial.println("lloopppp");
+  checkButtonState();
+  if(!isEnded) {
+    if(preferences.getBool("isBtnPressed", false)) {
+
+        while (!nimBleEsp.isConnectedClient())
+        {
+          checkButtonState();
+          Serial.print(".");
+          delay(200);
+        }
+        nimBleEsp.notifyClient();
+        if(nimBleEsp.getCardiacValue() != "") {
+          int indexCount = preferences.getInt("dataCount", 0);
+          String tempIndex = "tempData" + String(indexCount);
+          String sensorIndex = "sensorData" + String(indexCount);
+
+          Serial.println(indexCount);
+          preferences.putString(tempIndex.c_str(), String(tempSensor.getTempSensorValue()));
+          preferences.putString(sensorIndex.c_str(), nimBleEsp.getCardiacValue());
+     
+          saveDataToFirebase();
+        }
+      } 
+  }
+
+    
+  delay(2000);
+
   /*checkButtonState();
   delay(1000);
   if(!isEnded) {
