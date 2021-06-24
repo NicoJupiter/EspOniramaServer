@@ -19,15 +19,15 @@ WifiEsp::WifiEsp() {
 
 void WifiEsp::initWifi() {
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+   /* WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to Wi-Fi");
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
         delay(300);
     }
-    Serial.println("connected...yeey :)");
-   /* WiFiManager wm;
+    Serial.println("connected...yeey :)");*/
+    WiFiManager wm;
 
     bool res;
     //création d'un portail avec comme nom de réseau AutoConnectAP et en mdp password
@@ -39,7 +39,7 @@ void WifiEsp::initWifi() {
     } 
     else {
         Serial.println("connected...yeey :)");
-    }*/
+    }
 }
 
 String WifiEsp::getSSID() {
@@ -98,7 +98,7 @@ bool WifiEsp::deleteDoc(String firebaseId, String documentPath) {
   */
 bool WifiEsp::createDoc(String firebaseId, String documentPath, String content) {
     if (Firebase.Firestore.createDocument(&fbdo, firebaseId.c_str(), "" , documentPath.c_str(), content.c_str())) {
-        Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+        //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
         return true;
     } else {
         Serial.println(fbdo.errorReason());
